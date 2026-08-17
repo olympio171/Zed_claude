@@ -62,7 +62,47 @@ body {
 img { max-width: 100%; display: block; }
 svg.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-::selection { background: var(--spectral-d); color: var(--bone); }
+/* ───────── Sélection ─────────
+   `::selection` n'accepte que fond, couleur et ombre portée — pas de
+   dégradé, pas de filtre. Le parti pris est donc contextuel : la
+   sélection dit à quoi on touche.
+   Note : jamais de `::-moz-selection` dans la même liste qu'un
+   `::selection` — un sélecteur invalide ferait tomber toute la règle. */
+
+/* Corps de texte : l'ombre absorbe le mot. */
+::selection {
+  background-color: var(--spectral-d);
+  color: var(--bone);
+  text-shadow: none;          /* coupe l'écho et le glitch pendant la sélection */
+}
+
+/* Titres d'affichage : le violet s'y confondrait avec l'écho fantôme,
+   déjà violet et décalé. La sélection s'inverse — la lame retourne le noir. */
+.opening__title::selection,   .opening__title ::selection,
+.act__title::selection,       .act__title ::selection,
+.ability__name::selection,    .ability__name ::selection,
+.plate__name::selection,      .plate__name ::selection,
+.fan__legend .lg__v::selection, .fan__legend .lg__v ::selection {
+  background-color: var(--bone);
+  color: var(--ink);
+  text-shadow: none;
+}
+
+/* Ce qui est rouge le reste une fois surligné : le taux de bannissement
+   et la mort de l'acte V ne se laissent pas neutraliser en violet. */
+.fan__legend li.is-critical .lg__v::selection,
+.fan__legend li.is-critical .lg__v ::selection,
+.silence__reward::selection,
+.silence__reward ::selection {
+  background-color: var(--blood);
+  color: var(--bone);
+  text-shadow: none;
+}
+
+/* La citation calligraphiée n'a besoin d'aucune règle : elle hérite du
+   violet ci-dessus, et son filtre de turbulence (`#f-ink-soft`) déchire
+   les bords du surlignage. On obtient gratuitement de l'encre qui imbibe
+   le papier — d'où l'absence volontaire de cas particulier ici. */
 
 /* ───────── 3. Accessibilité ───────── */
 .sr-only {
