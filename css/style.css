@@ -1,0 +1,816 @@
+/* ═══════════════════════════════════════════════════════════════
+   ZED — L'Art du Silence
+   Le vide est un élément actif. Tout ce qui n'est pas nécessaire
+   a été retiré : ce qui reste doit porter.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────── 1. Jetons ───────── */
+:root {
+  --ink:        #0A0A0C;   /* noir encre — ~80 % des surfaces */
+  --ink-raise:  #101014;   /* élévation à peine perceptible   */
+  --spectral:   #8B5CF6;   /* violet spectral — accent principal */
+  --spectral-d: #6B2FBF;   /* violet profond   */
+  --blood:      #C21E28;   /* rouge sang — moments critiques UNIQUEMENT */
+  --bone:       #F5F3F0;   /* blanc cassé — jamais de blanc pur */
+  --steel:      #3A3A42;   /* gris acier — 1,76:1 : JAMAIS pour du texte,
+                              uniquement lames dormantes et aplats */
+  --muted:      #8A8A93;   /* petites capitales discrètes — 5,8:1, AA */
+
+  --bone-70: rgba(245, 243, 240, .70);   /*  8,9:1 */
+  --bone-60: rgba(245, 243, 240, .60);   /*  6,7:1 — plancher du texte AA */
+  --bone-38: rgba(245, 243, 240, .38);   /*  3,3:1 — traits d'interface (WCAG 1.4.11) */
+  --bone-22: rgba(245, 243, 240, .22);
+  --bone-10: rgba(245, 243, 240, .10);
+
+  --font-display: 'Anton', 'Arial Narrow', sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-brush:   'Yuji Syuku', 'Shippori Mincho', serif;
+
+  /* Rythme vertical : une seule échelle, appliquée partout */
+  --gut:   clamp(1.5rem, 4vw, 3.5rem);
+  --ma:    clamp(6rem, 18vh, 14rem);   /* le silence entre les scènes */
+
+  --ease-blade: cubic-bezier(.16, 1, .3, 1);
+  --ease-cut:   cubic-bezier(.9, 0, .1, 1);
+}
+
+/* ───────── 2. Fondations ───────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  /* `clip` et non `hidden` : `hidden` ferait de <html> un conteneur de
+     défilement, ce qui corrompt les mesures d'épinglage de ScrollTrigger
+     (la galerie de l'acte IV se retrouve calée à une position négative).
+     `clip` rogne le débordement sans créer de conteneur. */
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: clamp(1rem, .55vw + .88rem, 1.125rem);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+img { max-width: 100%; display: block; }
+svg.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+::selection { background: var(--spectral-d); color: var(--bone); }
+
+/* ───────── 3. Accessibilité ───────── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: fixed; top: 0; left: 50%;
+  transform: translate(-50%, -120%);
+  z-index: 9999;
+  padding: .85rem 1.5rem;
+  background: var(--spectral); color: var(--bone);
+  font: 500 .8rem/1 var(--font-body);
+  letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+  transition: transform .25s var(--ease-blade);
+}
+.skip-link:focus-visible { transform: translate(-50%, 0); }
+
+/* Focus clavier : violet, épais, jamais supprimé */
+:focus-visible {
+  outline: 2px solid var(--spectral);
+  outline-offset: 4px;
+  border-radius: 1px;
+}
+/* Le focus souris ne dessine rien — seul le clavier compte */
+:focus:not(:focus-visible) { outline: none; }
+
+/* ───────── 4. Curseur-ombre ───────── */
+/* Le vrai curseur n'est masqué que sur pointeur fin, mouvement autorisé,
+   et jamais en navigation clavier (voir body.kbd). */
+@media (pointer: fine) {
+  body.shadow-cursor:not(.kbd),
+  body.shadow-cursor:not(.kbd) * { cursor: none; }
+}
+
+.cursor {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 9000;
+  display: none;
+}
+body.shadow-cursor .cursor { display: block; }
+
+.cursor__dot,
+.cursor__shadow,
+.cursor__mark {
+  position: absolute; top: 0; left: 0;
+  will-change: transform;
+}
+
+/* Le point net : la position réelle, l'instant présent */
+.cursor__dot {
+  width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  background: var(--bone);
+  transform-origin: 50% 50%;
+  rotate: 45deg;
+}
+
+/* L'ombre : le même geste, quelques millisecondes en retard */
+.cursor__shadow {
+  width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  border: 1px solid rgba(139, 92, 246, .55);
+  background: radial-gradient(circle, rgba(139, 92, 246, .16), transparent 68%);
+  rotate: 45deg;
+}
+
+/* Marque de la mort, posée sur le curseur lui-même */
+.cursor__mark {
+  width: 96px; height: 96px; margin: -48px 0 0 -48px;
+  opacity: 0; transform: scale(.6);
+}
+.cursor__mark-ring,
+.cursor__mark-fill {
+  fill: none; stroke-width: 2;
+  transform-origin: 50% 50%; rotate: -90deg;
+}
+.cursor__mark-ring { stroke: rgba(194, 30, 40, .25); }
+.cursor__mark-fill {
+  stroke: var(--blood);
+  stroke-dasharray: 214;   /* 2πr, r = 34 */
+  stroke-dashoffset: 214;
+}
+.cursor__mark-glyph { fill: var(--blood); opacity: 0; }
+
+/* ───────── 5. Voile : grain + scanlines ───────── */
+.veil {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 8000;
+  mix-blend-mode: overlay; opacity: .5;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, .028) 0 1px,
+      transparent 1px 3px
+    );
+}
+.veil::after {
+  content: ''; position: absolute; inset: -50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+  opacity: .5;
+  animation: grain 7s steps(6) infinite;
+}
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-3%, 2%); }
+  40%  { transform: translate(2%, -3%); }
+  60%  { transform: translate(-2%, -2%); }
+  80%  { transform: translate(3%, 1%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Voile rouge — Marque de la mort */
+.deathveil {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 8500;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(194, 30, 40, .34) 100%);
+}
+
+/* ───────── 6. HUD (son) ───────── */
+.hud {
+  position: fixed; bottom: clamp(1rem, 3vw, 2.25rem); right: clamp(1rem, 3vw, 2.25rem);
+  z-index: 7000;
+}
+.hud__btn {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .55rem .9rem;
+  background: rgba(10, 10, 12, .72);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--bone-10);
+  color: var(--bone-60);
+  font: 400 .68rem/1 var(--font-body);
+  letter-spacing: .16em; text-transform: uppercase;
+  cursor: pointer;
+  transition: color .3s, border-color .3s;
+}
+.hud__btn:hover { color: var(--bone); border-color: rgba(139, 92, 246, .45); }
+.hud__btn b { font-weight: 500; color: var(--bone-70); }
+
+.hud__icon { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+.hud__icon i {
+  width: 2px; background: currentColor;
+  height: 4px;
+  transition: height .3s var(--ease-blade);
+}
+.hud__btn[aria-pressed="true"] { color: var(--spectral); border-color: rgba(139, 92, 246, .5); }
+.hud__btn[aria-pressed="true"] .hud__icon i:nth-child(1) { height: 6px; }
+.hud__btn[aria-pressed="true"] .hud__icon i:nth-child(2) { height: 12px; }
+.hud__btn[aria-pressed="true"] .hud__icon i:nth-child(3) { height: 8px; }
+
+/* ───────── 7. Rail de progression (remplace la nav) ───────── */
+.rail {
+  position: fixed; top: 50%; left: clamp(.9rem, 2.4vw, 2rem);
+  transform: translateY(-50%);
+  z-index: 7000;
+}
+.rail__line {
+  position: absolute; left: 3px; top: 6px; bottom: 6px;
+  width: 1px; background: var(--bone-10);
+}
+.rail__line i {
+  position: absolute; inset: 0 auto 0 0;
+  width: 1px; height: 0;
+  background: linear-gradient(var(--spectral), var(--spectral-d));
+}
+.rail__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.15rem; }
+.rail__list a {
+  position: relative; display: block;
+  width: 7px; height: 7px;
+  border: 1px solid var(--bone-38);
+  rotate: 45deg;
+  text-decoration: none;
+  transition: background .35s, border-color .35s, scale .35s var(--ease-blade);
+}
+/* Le losange est incliné à 45° ; l'étiquette se redresse d'abord,
+   PUIS s'écarte — ainsi le décalage se fait bien à l'horizontale de l'écran
+   et le texte ne repasse pas sous le rail. */
+.rail__list a span {
+  position: absolute; left: 50%; top: 50%;
+  transform-origin: 0 0;
+  transform: rotate(-45deg) translate(10px, -50%);
+  white-space: nowrap;
+  font: 400 .62rem/1 var(--font-body);
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--bone-60);
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s, transform .3s var(--ease-blade);
+}
+.rail__list a:hover span,
+.rail__list a:focus-visible span {
+  opacity: 1;
+  transform: rotate(-45deg) translate(19px, -50%);
+}
+.rail__list a:hover, .rail__list a[aria-current="true"] { border-color: var(--spectral); }
+.rail__list a[aria-current="true"] { background: var(--spectral); scale: 1.25; }
+
+@media (max-width: 720px) { .rail { display: none; } }
+
+/* ───────── 8. Squelette des actes ───────── */
+.act {
+  position: relative;
+  padding-block: var(--ma);
+  isolation: isolate;
+}
+.act--0 { padding: 0; min-height: 100svh; display: grid; place-items: center; }
+
+.act__inner {
+  width: min(100% - 2 * var(--gut), 1180px);
+  margin-inline: auto;
+  padding-left: clamp(0px, 3vw, 3rem);   /* dégage le rail */
+}
+
+.act__num {
+  margin: 0 0 1rem;
+  font: 400 .68rem/1 var(--font-body);
+  letter-spacing: .42em; text-transform: uppercase;
+  color: var(--muted);
+}
+.act__num::before {
+  content: ''; display: inline-block;
+  width: clamp(24px, 5vw, 64px); height: 1px;
+  margin-right: 1.1rem; vertical-align: middle;
+  background: var(--bone-22);
+}
+
+.act__title {
+  margin: 0 0 clamp(1.5rem, 4vw, 3rem);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3.2rem, 11vw, 9.5rem);
+  line-height: .84;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+  /* Interlignage serré volontaire : les capitales accentuées (GENÈSE, RELEVÉ)
+     débordent alors du line-box. On leur rend la hauteur, sinon la coupe
+     diagonale leur rogne l'accent. */
+  padding-top: .34em;
+}
+.act__title--quiet { font-size: clamp(2.4rem, 7vw, 6rem); opacity: .6; }
+
+.act__lede {
+  max-width: 46ch;
+  margin: 0;
+  font-size: clamp(1.05rem, 1.1vw + .8rem, 1.4rem);
+  font-weight: 200;
+  line-height: 1.6;
+  color: var(--bone-70);
+}
+.act__foot { width: min(100% - 2 * var(--gut), 1180px); margin: var(--ma) auto 0; }
+
+/* ───────── 9. Écho fantôme (Living Shadow typographique) ───────── */
+.echo { position: relative; display: inline-block; }
+.echo::before {
+  content: attr(data-echo);
+  position: absolute; inset: 0;
+  color: var(--spectral);
+  opacity: .15;
+  transform: translate(6px, 5px);
+  pointer-events: none;
+  z-index: -1;
+  transition: transform .55s var(--ease-blade);
+  transition-delay: .06s;   /* le lag : l'ombre arrive après */
+}
+.act__title:hover .echo::before,
+.opening__title:hover .echo::before { transform: translate(14px, 11px); }
+
+/* ───────── 10. Transition « coupe de lame » entre actes ───────── */
+/* Une lame de lumière traverse l'écran au passage d'un acte.
+   Volontairement PAS un clip-path sur les sections : clip-path crée un
+   bloc conteneur pour les descendants en position fixed, ce qui casserait
+   l'épinglage de la galerie. La coupe est donc un calque au-dessus. */
+.cut-sweep {
+  position: fixed; inset: 0;
+  z-index: 8600;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  background: linear-gradient(
+    104deg,
+    transparent 46.5%,
+    rgba(245, 243, 240, .30) 48.6%,
+    rgba(139, 92, 246, .85) 49.6%,
+    rgba(245, 243, 240, .30) 50.6%,
+    transparent 52.8%
+  );
+}
+
+/* ───────── 11. Acte 0 — Ouverture ───────── */
+.opening__canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: -1;
+}
+.opening__content {
+  text-align: center;
+  padding-inline: var(--gut);
+}
+.opening__kicker {
+  margin: 0 0 clamp(1.2rem, 3vw, 2rem);
+  font: 400 .7rem/1 var(--font-body);
+  letter-spacing: .55em; text-transform: uppercase;
+  color: var(--bone-60);
+  padding-left: .55em;   /* compense le letter-spacing final */
+}
+.opening__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(6rem, 27vw, 22rem);
+  line-height: .8;
+  letter-spacing: .04em;
+  padding-left: .04em;
+}
+.opening__sub {
+  margin: clamp(1.2rem, 3vw, 2rem) 0 0;
+  font: 200 clamp(.95rem, 1.4vw, 1.2rem)/1 var(--font-body);
+  letter-spacing: .42em; text-transform: uppercase;
+  color: var(--bone-60);
+  padding-left: .42em;
+}
+.opening__ma {
+  margin: clamp(2.5rem, 7vw, 5rem) 0 0;
+  font-family: var(--font-brush);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  color: var(--spectral);
+  opacity: .3;
+  line-height: 1;
+}
+
+.scroll-hint {
+  position: absolute; bottom: clamp(1.75rem, 5vh, 3.5rem); left: 50%;
+  transform: translateX(-50%);
+  display: grid; gap: .8rem; justify-items: center;
+  color: var(--bone-60); text-decoration: none;
+  font: 400 .62rem/1 var(--font-body);
+  letter-spacing: .3em; text-transform: uppercase;
+  transition: color .3s;
+}
+.scroll-hint:hover { color: var(--bone); }
+.scroll-hint__bar { display: block; width: 1px; height: 54px; background: var(--bone-10); overflow: hidden; }
+.scroll-hint__bar i {
+  display: block; width: 1px; height: 40%;
+  background: var(--spectral);
+  animation: drop 2.4s var(--ease-blade) infinite;
+}
+@keyframes drop {
+  0%        { transform: translateY(-100%); }
+  55%, 100% { transform: translateY(250%); }
+}
+
+/* ───────── 12. Acte 1 — Genèse ───────── */
+.par { position: absolute; inset: 0; pointer-events: none; will-change: transform; }
+.par--back { z-index: -2; }
+
+.ink-blot {
+  position: absolute;
+  top: 8%; right: -12%;
+  width: min(76vw, 900px); aspect-ratio: 1;
+  background:
+    radial-gradient(circle at 42% 44%, rgba(107, 47, 191, .30), transparent 58%),
+    radial-gradient(circle at 62% 60%, rgba(139, 92, 246, .16), transparent 62%);
+  filter: url(#f-ink) blur(14px);
+  opacity: .85;
+  border-radius: 50%;
+  transform: scale(.2);
+}
+
+.genese__body {
+  max-width: 60ch;
+  margin: 0 0 clamp(3rem, 8vw, 6rem);
+  display: grid; gap: clamp(1.6rem, 3vw, 2.4rem);
+}
+.ink-reveal {
+  margin: 0;
+  font-size: clamp(1.05rem, .9vw + .85rem, 1.35rem);
+  font-weight: 200;
+  line-height: 1.85;
+  color: var(--bone-70);
+  /* Masque radial : l'encre se répand depuis la gauche */
+  -webkit-mask-image: radial-gradient(120% 180% at -10% 50%, #000 0%, #000 var(--ink-stop, 100%), transparent calc(var(--ink-stop, 100%) + 18%));
+          mask-image: radial-gradient(120% 180% at -10% 50%, #000 0%, #000 var(--ink-stop, 100%), transparent calc(var(--ink-stop, 100%) + 18%));
+}
+.js-anim .ink-reveal { --ink-stop: 0%; }
+.ink-reveal::first-letter { color: var(--bone); }
+
+.brush-quote {
+  margin: 0;
+  max-width: 30ch;
+  margin-left: auto;
+  text-align: right;
+}
+.brush-quote p {
+  margin: 0;
+  font-family: var(--font-brush);
+  font-size: clamp(1.35rem, 2.6vw, 2.35rem);
+  line-height: 1.55;
+  color: var(--bone);
+  filter: url(#f-ink-soft);
+}
+
+/* ───────── 13. Acte 2 — Les quatre visages ───────── */
+.act__inner--head { margin-bottom: var(--ma); }
+
+.kit { display: grid; }
+
+.ability {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  padding-block: clamp(3rem, 10vh, 7rem);
+  overflow: hidden;
+}
+
+.ability__stage {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  cursor: crosshair;
+  touch-action: pan-y;   /* laisse le défilement tactile passer */
+}
+body.shadow-cursor:not(.kbd) .ability__stage { cursor: none; }
+
+.ability__inner {
+  position: relative; z-index: 1;
+  width: min(100% - 2 * var(--gut), 1180px);
+  margin-inline: auto;
+  padding-left: clamp(0px, 3vw, 3rem);
+  pointer-events: none;   /* la scène dessous reste interactive */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.2rem, 3vw, 2rem);
+  max-width: 640px;
+}
+.ability__inner > * { pointer-events: auto; }
+.ability:nth-child(even) .ability__inner { margin-left: auto; margin-right: 0; }
+
+.ability__key {
+  display: grid; place-items: center;
+  width: 3.4rem; height: 3.4rem;
+  border: 1px solid var(--bone-22);
+  font-family: var(--font-display);
+  font-size: 1.7rem; line-height: 1;
+  color: var(--spectral);
+  rotate: 45deg;
+}
+.ability__key span { rotate: -45deg; padding-top: .12em; }
+
+.ability__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+  line-height: .95;
+  text-transform: uppercase;
+  letter-spacing: -.01em;
+  padding-top: .1em;
+}
+.ability__desc {
+  margin: 0; max-width: 42ch;
+  color: var(--bone-70);
+  font-weight: 200;
+}
+.ability__meta {
+  display: flex; flex-wrap: wrap; gap: 1.6rem;
+  margin: 0; padding: 0; list-style: none;
+  font: 400 .66rem/1.4 var(--font-body);
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted);
+}
+.ability__meta b { display: block; color: var(--bone-70); font-weight: 400; letter-spacing: .1em; }
+
+.ability__prompt {
+  margin: 0;
+  font: 400 .68rem/1.4 var(--font-body);
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--spectral);
+  display: flex; align-items: center; gap: .8rem;
+}
+.ability__prompt::before {
+  content: ''; width: 6px; height: 6px;
+  background: var(--spectral); rotate: 45deg;
+  animation: pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+.ability--r .ability__prompt { color: var(--blood); }
+.ability--r .ability__prompt::before { background: var(--blood); }
+.ability--r .ability__key { color: var(--blood); border-color: rgba(194, 30, 40, .4); }
+
+.passive {
+  display: grid; gap: .6rem;
+  padding-top: clamp(1.5rem, 4vw, 2.5rem);
+  border-top: 1px solid var(--bone-10);
+  max-width: 62ch;
+}
+.passive__key {
+  font: 400 .64rem/1 var(--font-body);
+  letter-spacing: .3em; text-transform: uppercase; color: var(--muted);
+}
+.passive__name {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+  text-transform: uppercase;
+}
+.passive__desc { color: var(--bone-60); font-weight: 200; font-size: .95rem; }
+
+/* ───────── 14. Acte 3 — Relevé ───────── */
+.releve { display: grid; justify-items: start; }
+
+.fan {
+  width: 100%;
+  margin: clamp(1rem, 4vw, 2.5rem) 0 clamp(2rem, 5vw, 3.5rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr);
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: center;
+}
+.fan__svg {
+  width: 100%; height: auto; overflow: visible;
+  max-width: min(100%, 27rem);   /* l'éventail est une respiration, pas un panneau */
+  justify-self: center;
+}
+
+.fan__blade-track { fill: var(--steel); opacity: .62; }
+.fan__blade-fill  { fill: var(--spectral); }
+.fan__blade-fill.is-critical { fill: var(--blood); }
+.fan__hub { fill: var(--bone); opacity: .55; }
+
+.fan__legend { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(.9rem, 2vw, 1.5rem); }
+.fan__legend li {
+  display: grid; gap: .15rem;
+  padding-left: 1.1rem;
+  border-left: 1px solid var(--bone-10);
+}
+.fan__legend li.is-critical { border-left-color: rgba(194, 30, 40, .55); }
+.fan__legend dt, .fan__legend .lg__k {
+  font: 400 .64rem/1 var(--font-body);
+  letter-spacing: .26em; text-transform: uppercase;
+  color: var(--muted);
+}
+.fan__legend .lg__v {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  line-height: 1;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+.fan__legend li.is-critical .lg__v { color: var(--blood); }
+
+.releve__source {
+  margin: 0;
+  font: 400 .66rem/1.6 var(--font-body);
+  letter-spacing: .12em;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+@media (max-width: 860px) {
+  .fan { grid-template-columns: 1fr; }
+  .fan__legend { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}
+
+/* ───────── 15. Acte 4 — Exposition ───────── */
+.act--4 { padding-block: 0; }
+.expo { position: relative; }
+.expo__track {
+  display: flex;
+  align-items: center;
+  gap: clamp(3rem, 9vw, 9rem);
+  padding-inline: clamp(1.5rem, 8vw, 9rem);
+  min-height: 100svh;
+}
+/* Sans JS (ou en mouvement réduit) : la salle se parcourt à l'horizontale nativement */
+.expo__track { overflow-x: auto; scroll-snap-type: x mandatory; }
+.js-anim .expo__track { overflow-x: visible; scroll-snap-type: none; }
+
+.expo__plate {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  position: relative;
+}
+.expo__plate--intro {
+  max-width: min(80vw, 520px);
+  padding-left: clamp(0px, 3vw, 3rem);
+}
+.expo__hint {
+  margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+  font: 400 .66rem/1 var(--font-body);
+  letter-spacing: .3em; text-transform: uppercase;
+  color: var(--spectral);
+}
+
+/* Une cimaise = une œuvre. Grand format, cartel discret. */
+.plate {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.6rem);
+  width: min(78vw, 620px);
+}
+.plate__frame {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--ink-raise);
+}
+.plate__frame img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 62% 22%;   /* les splashs Riot cadrent le buste à droite */
+  filter: grayscale(.55) contrast(1.08) brightness(.82);
+  transition: filter .8s var(--ease-blade), scale 1.1s var(--ease-blade);
+  scale: 1.04;
+}
+.plate:hover .plate__frame img { filter: grayscale(0) contrast(1) brightness(1); scale: 1.09; }
+
+/* Le fantôme violet de l'œuvre — décalé, en retard */
+.plate__frame::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(200deg, rgba(139, 92, 246, .22), transparent 55%);
+  mix-blend-mode: screen;
+  opacity: .9;
+  transition: opacity .7s;
+}
+.plate:hover .plate__frame::after { opacity: .25; }
+
+.plate__cartel { display: grid; gap: .35rem; }
+.plate__no {
+  font: 400 .64rem/1 var(--font-body);
+  letter-spacing: .3em; text-transform: uppercase;
+  color: var(--muted);
+}
+.plate__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+  line-height: 1;
+  text-transform: uppercase;
+  padding-top: .1em;   /* ZED ÉLECTROLAME, ZED FLÉAU GALACTIQUE */
+}
+.plate__note { margin: 0; font-size: .85rem; font-weight: 200; color: var(--bone-60); max-width: 34ch; }
+
+@media (max-width: 700px) {
+  .plate { width: min(84vw, 420px); }
+}
+
+/* ───────── 16. Acte 5 — Silence ───────── */
+.act--5 { min-height: 100svh; display: grid; align-content: center; }
+.silence { text-align: center; min-height: 44vh; display: grid; align-content: center; justify-items: center; }
+.silence .act__num::before { display: none; }
+.silence .act__num { letter-spacing: .42em; }
+
+.silence__whisper {
+  margin: 0;
+  font: 200 .8rem/1 var(--font-body);
+  letter-spacing: .45em; text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 1.4s ease;
+  padding-left: .45em;
+}
+.silence__whisper.is-visible { opacity: 1; }
+
+.silence__reward {
+  margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+  display: grid; gap: .9rem; justify-items: center;
+  color: var(--blood);
+  font: 200 .95rem/1.6 var(--font-body);
+  letter-spacing: .2em; text-transform: uppercase;
+}
+.silence__reward span {
+  font-family: var(--font-brush);
+  font-size: clamp(3rem, 9vw, 6rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.colophon {
+  width: min(100% - 2 * var(--gut), 1180px);
+  margin: var(--ma) auto 0;
+  padding: clamp(1.5rem, 4vw, 2.5rem) 0 clamp(3rem, 8vw, 5rem);
+  padding-left: clamp(0px, 3vw, 3rem);
+  border-top: 1px solid var(--bone-10);
+  display: flex; flex-wrap: wrap; gap: 1.5rem;
+  align-items: flex-end; justify-content: space-between;
+}
+.colophon p {
+  margin: 0; max-width: 58ch;
+  font-size: .74rem; line-height: 1.7; color: var(--muted);
+}
+.colophon__ma {
+  font-family: var(--font-brush);
+  font-size: 2rem !important;
+  color: var(--muted); opacity: .5;
+}
+
+/* ───────── 17. Glitch RGB au survol (jamais permanent) ───────── */
+.glitch { position: relative; }
+@media (hover: hover) and (pointer: fine) {
+  .glitch:hover, .glitch:focus-visible {
+    animation: rgbsplit .42s steps(3) 1;
+  }
+}
+@keyframes rgbsplit {
+  0%   { text-shadow: none; }
+  33%  { text-shadow: -3px 0 rgba(194, 30, 40, .85), 3px 0 rgba(0, 200, 255, .7); }
+  66%  { text-shadow: 2px 0 rgba(194, 30, 40, .6), -2px 0 rgba(139, 92, 246, .8); }
+  100% { text-shadow: none; }
+}
+
+/* Clone de dédoublement (double-clic) : une copie violette qui se détache,
+   glisse, puis refusionne. Volontairement pas de mix-blend-mode ni de filtre
+   SVG de séparation RVB — sur fond noir ils produisent un aplat opaque
+   au lieu d'un fantôme. */
+.clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 8800;
+  opacity: .6;
+  filter: drop-shadow(-2px 0 rgba(194, 30, 40, .5));
+}
+.clone, .clone * {
+  color: var(--spectral) !important;
+  border-color: rgba(139, 92, 246, .5) !important;
+  background: none !important;
+}
+/* Une cimaise clonée : l'illustration passe elle aussi dans le violet */
+.clone img { filter: grayscale(1) sepia(1) hue-rotate(212deg) saturate(4) brightness(.75); }
+
+/* ───────── 18. Mouvement réduit : on désarme tout ───────── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+
+  /* Le curseur-ombre, le parallax, le grain et les coupes disparaissent */
+  .cursor, .veil::after { display: none !important; }
+  body.shadow-cursor, body.shadow-cursor * { cursor: auto !important; }
+  .par { transform: none !important; }
+  .cut-sweep { display: none !important; }
+  .js-anim .ink-reveal { --ink-stop: 100%; }
+  .ink-blot { transform: scale(1); opacity: .4; }
+  .echo::before { transform: translate(6px, 5px) !important; }
+  .expo__track { overflow-x: auto !important; scroll-snap-type: x mandatory !important; }
+  .scroll-hint__bar i { animation: none; height: 100%; opacity: .4; }
+}

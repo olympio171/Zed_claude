@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZED — L'Art du Silence</title>
+<meta name="description" content="Une installation numérique autour de Zed, maître de l'Ordre de l'ombre. Encre, silence et dédoublement.">
+<meta name="theme-color" content="#0A0A0C">
+
+<meta property="og:title" content="ZED — L'Art du Silence">
+<meta property="og:description" content="Une installation numérique autour de Zed, maître de l'Ordre de l'ombre.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Zed_3.jpg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://ddragon.leagueoflegends.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@200;300;400;500&family=Yuji+Syuku&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<a class="skip-link" href="#acte-1">Aller au contenu</a>
+
+<!-- ══════════ SVG defs : filtres encre + glitch ══════════ -->
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- Bord d'encre irrégulier : la turbulence déforme la frontière du masque -->
+    <filter id="f-ink" x="-25%" y="-25%" width="150%" height="150%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014 0.021" numOctaves="4" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="26" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- Variante douce pour le texte de lore (sinon illisible) -->
+    <filter id="f-ink-soft" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.04" numOctaves="3" seed="19" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ══════════ Curseur-ombre ══════════ -->
+<div class="cursor" aria-hidden="true">
+  <div class="cursor__shadow" data-cursor-shadow></div>
+  <div class="cursor__dot" data-cursor-dot></div>
+  <svg class="cursor__mark" data-cursor-mark viewBox="0 0 100 100" aria-hidden="true">
+    <circle class="cursor__mark-ring" cx="50" cy="50" r="34"/>
+    <circle class="cursor__mark-fill" cx="50" cy="50" r="34"/>
+    <path class="cursor__mark-glyph" d="M50 26 L62 50 L50 74 L38 50 Z"/>
+  </svg>
+</div>
+
+<!-- ══════════ Grain + scanlines global ══════════ -->
+<div class="veil" aria-hidden="true"></div>
+
+<!-- ══════════ Contrôles persistants ══════════ -->
+<div class="hud">
+  <button class="hud__btn" data-sound-toggle type="button" aria-pressed="false">
+    <span class="hud__icon" aria-hidden="true">
+      <i></i><i></i><i></i>
+    </span>
+    <span class="hud__label">Son <b data-sound-state>coupé</b></span>
+  </button>
+</div>
+
+<!-- ══════════ Indicateur d'actes (remplace la nav) ══════════ -->
+<nav class="rail" aria-label="Progression">
+  <span class="rail__line" aria-hidden="true"><i data-rail-fill></i></span>
+  <ul class="rail__list">
+    <li><a href="#acte-0" data-rail-dot><span>Ouverture</span></a></li>
+    <li><a href="#acte-1" data-rail-dot><span>Genèse</span></a></li>
+    <li><a href="#acte-2" data-rail-dot><span>Les quatre visages</span></a></li>
+    <li><a href="#acte-3" data-rail-dot><span>Relevé</span></a></li>
+    <li><a href="#acte-4" data-rail-dot><span>Exposition</span></a></li>
+    <li><a href="#acte-5" data-rail-dot><span>Silence</span></a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ══════════════════ ACTE 0 — OUVERTURE ══════════════════ -->
+<section class="act act--0" id="acte-0" aria-label="Ouverture">
+  <canvas class="opening__canvas" data-opening-canvas aria-hidden="true"></canvas>
+
+  <div class="opening__content">
+    <p class="opening__kicker" data-open-seq="1">Ordre de l'ombre</p>
+    <h1 class="opening__title" data-open-seq="2">
+      <span class="echo" data-echo="ZED">ZED</span>
+    </h1>
+    <p class="opening__sub" data-open-seq="3">Maître des ombres</p>
+    <p class="opening__ma" data-open-seq="4" lang="ja">間</p>
+  </div>
+
+  <a class="scroll-hint" href="#acte-1" data-open-seq="5">
+    <span>Descendre</span>
+    <span class="scroll-hint__bar" aria-hidden="true"><i></i></span>
+  </a>
+</section>
+
+<!-- ══════════════════ ACTE 1 — GENÈSE ══════════════════ -->
+<section class="act act--1 blade" id="acte-1" aria-labelledby="t-genese">
+  <div class="par par--back" data-par="0.12" aria-hidden="true">
+    <div class="ink-blot" data-ink-blot></div>
+  </div>
+
+  <div class="act__inner genese">
+    <p class="act__num" aria-hidden="true">Acte I</p>
+    <h2 class="act__title" id="t-genese"><span class="echo" data-echo="Genèse">Genèse</span></h2>
+
+    <div class="genese__body">
+      <p class="ink-reveal" data-ink>
+        L'impitoyable Zed est le maître de l'Ordre de l'ombre, une organisation qu'il a créée
+        dans l'intention de militariser la tradition des arts martiaux d'Ionia et de chasser
+        enfin les envahisseurs noxiens.
+      </p>
+      <p class="ink-reveal" data-ink>
+        Pendant la guerre, le désespoir le conduisit à déchaîner la Forme secrète de l'ombre,
+        un puissant esprit maléfique aussi dangereux que corrompu.
+      </p>
+      <p class="ink-reveal" data-ink>
+        S'il maîtrise ces techniques interdites, c'est pour détruire tout ce qu'il considère
+        comme une menace contre sa nation ou son ordre.
+      </p>
+    </div>
+
+    <blockquote class="brush-quote" data-par="-0.06">
+      <p>« L'équilibre est une illusion&nbsp;: seule la lame décide. »</p>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ══════════════════ ACTE 2 — LES QUATRE VISAGES ══════════════════ -->
+<section class="act act--2 blade" id="acte-2" aria-labelledby="t-visages">
+  <header class="act__inner act__inner--head">
+    <p class="act__num" aria-hidden="true">Acte II</p>
+    <h2 class="act__title" id="t-visages"><span class="echo" data-echo="Les quatre visages">Les quatre visages</span></h2>
+    <p class="act__lede">Quatre gestes. Le même homme, quatre fois — jamais tout à fait au même endroit.</p>
+  </header>
+
+  <!-- Les 4 scènes sont injectées ici par js/abilities.js -->
+  <div class="kit" data-kit></div>
+
+  <p class="act__foot passive">
+    <span class="passive__key">Passif</span>
+    <span class="passive__name">Mépris des faibles</span>
+    <span class="passive__desc">Ses attaques de base infligent des dégâts magiques supplémentaires aux cibles dont les PV sont faibles.</span>
+  </p>
+</section>
+
+<!-- ══════════════════ ACTE 3 — DONNÉES VIVANTES ══════════════════ -->
+<section class="act act--3 blade" id="acte-3" aria-labelledby="t-releve">
+  <div class="act__inner releve">
+    <p class="act__num" aria-hidden="true">Acte III</p>
+    <h2 class="act__title" id="t-releve"><span class="echo" data-echo="Relevé">Relevé</span></h2>
+
+    <div class="fan" data-fan>
+      <svg class="fan__svg" viewBox="0 0 900 560" role="img" aria-labelledby="fan-title fan-desc">
+        <title id="fan-title">Éventail de cinq lames</title>
+        <desc id="fan-desc">
+          Cinq lames rayonnantes dont la longueur encode une mesure&nbsp;:
+          taux de victoire 52&nbsp;%, taux de sélection 9&nbsp;%, taux de bannissement 24&nbsp;%,
+          palier S, rang 4 sur 102 en voie du milieu.
+        </desc>
+        <g data-fan-blades></g>
+      </svg>
+      <ul class="fan__legend" data-fan-legend></ul>
+    </div>
+
+    <p class="releve__source">
+      Patch&nbsp;16.16 · bracket Émeraude+ · voie du milieu · relevé manuel, non automatisé
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════ ACTE 4 — EXPOSITION ══════════════════ -->
+<section class="act act--4 blade" id="acte-4" aria-labelledby="t-expo">
+  <div class="expo" data-expo>
+    <div class="expo__track" data-expo-track>
+      <div class="expo__plate expo__plate--intro">
+        <p class="act__num" aria-hidden="true">Acte IV</p>
+        <h2 class="act__title" id="t-expo"><span class="echo" data-echo="Exposition">Exposition</span></h2>
+        <p class="act__lede">Neuf visages accrochés au mur. Une salle, un couloir, aucun cadre.</p>
+        <p class="expo__hint" aria-hidden="true">→ défiler</p>
+      </div>
+      <!-- Les cimaises sont injectées ici par js/gallery.js -->
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ ACTE 5 — SILENCE ══════════════════ -->
+<section class="act act--5 blade" id="acte-5" aria-labelledby="t-silence">
+  <div class="act__inner silence" data-silence>
+    <p class="act__num" aria-hidden="true">Acte V</p>
+    <h2 class="act__title act__title--quiet" id="t-silence"><span class="echo" data-echo="Silence">Silence</span></h2>
+    <p class="silence__whisper" data-silence-hint>Ne bouge plus.</p>
+    <p class="silence__reward" data-silence-reward hidden>
+      <span lang="ja">死</span>
+      Tu viens de mourir il y a trois secondes.
+    </p>
+  </div>
+
+  <footer class="colophon">
+    <p>
+      Installation non officielle. Zed, ses illustrations et son univers appartiennent à
+      Riot&nbsp;Games. Données de champion&nbsp;: Data&nbsp;Dragon 16.16.1.
+    </p>
+    <p class="colophon__ma" lang="ja" aria-hidden="true">間</p>
+  </footer>
+</section>
+
+</main>
+
+<!-- Voile rouge de la Marque de la mort -->
+<div class="deathveil" data-deathveil aria-hidden="true"></div>
+
+<!-- Annonces pour lecteurs d'écran -->
+<p class="sr-only" role="status" aria-live="polite" data-live></p>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js" defer></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
