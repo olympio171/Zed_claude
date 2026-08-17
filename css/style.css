@@ -93,9 +93,16 @@ svg.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 :focus:not(:focus-visible) { outline: none; }
 
 /* ───────── 4. Curseur-ombre ───────── */
-/* Le curseur natif n'est JAMAIS masqué : ce calque n'est que l'ombre
-   qui le poursuit. Masquer le pointeur système supprimait la main sur les
-   liens, la barre sur le texte, et donnait une sensation de latence. */
+/* Le pointeur système est masqué et remplacé par le losange net, posé
+   exactement sur la position réelle. Trois garde-fous : jamais sur
+   pointeur grossier, jamais en mouvement réduit, et jamais en navigation
+   clavier (body.kbd). `shadow-cursor` étant posé par le JS, une panne de
+   script laisse le pointeur natif en place. */
+@media (pointer: fine) {
+  body.shadow-cursor:not(.kbd),
+  body.shadow-cursor:not(.kbd) * { cursor: none; }
+}
+
 .cursor {
   position: fixed; inset: 0;
   pointer-events: none; z-index: 9000;
@@ -105,13 +112,37 @@ svg.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 }
 body.shadow-cursor .cursor { display: block; }
 body.shadow-cursor .cursor.is-live { opacity: 1; }
-/* En navigation clavier, l'ombre n'a plus de sens : le focus prend le relais */
-body.kbd .cursor { opacity: 0; }
+/* En navigation clavier le pointeur natif revient : notre calque doit
+   disparaître, sinon deux curseurs cohabitent. Le sélecteur reprend
+   `.is-live` pour égaler sa spécificité — sans ça, la règle du dessus
+   l'emporte et le losange reste affiché par-dessus le pointeur système. */
+body.kbd .cursor,
+body.kbd .cursor.is-live { opacity: 0; }
 
+.cursor__dot,
 .cursor__shadow,
 .cursor__mark {
   position: absolute; top: 0; left: 0;
   will-change: transform;
+}
+
+/* Le losange net : l'instant présent, sans retard d'aucune sorte.
+   Le conteneur ne porte QUE la translation (écrite par le JS) ; la
+   rotation et le grossissement vivent sur l'enfant. Cumuler `rotate:`
+   et un `transform` translaté sur le même élément ferait glisser le
+   losange le long d'axes tournés à 45°. */
+.cursor__dot i {
+  display: block;
+  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+  background: var(--bone);
+  rotate: 45deg;
+  transition: scale .18s var(--ease-blade), background .18s;
+}
+/* Le pointeur natif n'indique plus rien : c'est le losange qui signale
+   ce qui est actionnable. */
+.cursor.is-hot .cursor__dot i {
+  scale: 1.6;
+  background: var(--spectral);
 }
 
 /* L'ombre : le même geste, quelques millisecondes en retard */

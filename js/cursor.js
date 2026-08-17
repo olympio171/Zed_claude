@@ -32,6 +32,7 @@ const CIRC = 2 * Math.PI * 34;   // périmètre de l'anneau (r = 34)
 export function initCursor({ onWhoosh } = {}) {
   const root   = document.querySelector('.cursor');
   const shadow = document.querySelector('[data-cursor-shadow]');
+  const dot    = document.querySelector('[data-cursor-dot]');
   const mark   = document.querySelector('[data-cursor-mark]');
   const fuse   = mark?.querySelector('.cursor__mark-fuse');
   const glyph  = mark?.querySelector('.cursor__mark-glyph');
@@ -65,6 +66,14 @@ export function initCursor({ onWhoosh } = {}) {
 
   addEventListener('pointermove', (e) => {
     ptr.x = e.clientX; ptr.y = e.clientY;
+
+    /* Le losange net est posé ICI, pas dans la boucle rAF. Passer par la
+       boucle ajouterait une image entière de retard (16 ms à 60 Hz, plus
+       si l'image est en retard) : le pointeur système étant masqué, ce
+       retard-là se voit immédiatement et donne un curseur qui « patine ».
+       Seule l'ombre, elle, a le droit de traîner. */
+    if (dot) dot.style.transform = `translate3d(${ptr.x}px, ${ptr.y}px, 0)`;
+
     if (!live) {                       // évite le vol depuis le centre de l'écran
       live = true;
       sh.x = ptr.x; sh.y = ptr.y;
@@ -73,6 +82,11 @@ export function initCursor({ onWhoosh } = {}) {
     document.body.classList.remove('kbd');
     poke();
   }, { passive: true });
+
+  /* Pointeur sorti de la fenêtre : le curseur natif reprend la main
+     au-dehors, le nôtre ne doit pas rester figé sur un bord. */
+  document.addEventListener('pointerleave', () => root.classList.remove('is-live'));
+  document.addEventListener('pointerenter', () => { if (live) root.classList.add('is-live'); });
 
   addEventListener('keydown', (e) => {
     if (e.key === 'Tab') document.body.classList.add('kbd');
