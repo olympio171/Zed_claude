@@ -11,8 +11,21 @@ import {
 } from './core.js';
 import { ABILITIES } from './data.js';
 
-const IDLE_DEMO = 4.2;   // la scène se démontre seule si on ne la touche pas
+/* La scène se démontre seule UNE fois, quelques secondes après être entrée
+   à l'écran — puis se tait. En boucle, elle envoyait des traînées violettes
+   en travers du fond toutes les 4 s pendant qu'on lisait le texte posé
+   par-dessus : illisible et perçu, à juste titre, comme un bug. */
+const IDLE_DEMO = 3.4;
 const NARROW = 760;
+
+/* Un compteur d'inactivité à usage unique. */
+function makeDemo() {
+  let t = 0, spent = false;
+  return {
+    tick(dt) { if (spent) return false; t += dt; if (t < IDLE_DEMO) return false; spent = true; return true; },
+    cancel() { spent = true; }      // la première interaction la rend inutile
+  };
+}
 
 /* Placement des acteurs.
    En large, ils occupent la colonne libre en face du texte.
@@ -63,6 +76,7 @@ function behaviourQ(stage, home) {
   const shadows = [{ dx: -0.055, dy: -0.17 }, { dx: -0.075, dy: 0.19 }];   // fractions de la scène
   let idle = 0, bob = 0;
 
+  const demo = makeDemo();
   const shPos = (s) => ({ x: home.x + s.dx * stage.w, y: home.y + s.dy * stage.h });
 
   const fire = (tx, ty) => {
@@ -82,14 +96,11 @@ function behaviourQ(stage, home) {
 
   stage.update = (dt) => {
     const ctx = stage.ctx;
-    idle += dt; bob += dt;
+    bob += dt;
     placeHome(stage, home);
 
-    if (idle > IDLE_DEMO) {
-      idle = 0;
-      fire(stage.w * (home.px > 0.5 ? 0.12 : 0.88), stage.h * rand(0.25, 0.75));
-    }
-    stage.resetIdle = () => { idle = 0; };
+    if (demo.tick(dt)) fire(stage.w * (home.px > 0.5 ? 0.12 : 0.88), stage.h * 0.5);
+    stage.resetIdle = () => demo.cancel();
 
     // Zed et ses deux ombres
     const u = stage.u;
@@ -136,7 +147,8 @@ function behaviourW(stage, home) {
   let shadow = null;          // { x, y, life }
   let dash = null;            // { from, to, t, pairs }
   const ghost = { x: -999, y: -999 };   // le curseur devient le clone
-  let idle = 0, bob = 0;
+  const demo = makeDemo();
+  let bob = 0;
 
   const act = (tx, ty) => {
     if (dash) return;
@@ -164,15 +176,12 @@ function behaviourW(stage, home) {
   stage.update = (dt) => {
     const ctx = stage.ctx;
     const u = stage.u;
-    idle += dt; bob += dt;
+    bob += dt;
     // Zed garde sa position après un échange : on ne la recalcule qu'au premier tour
     if (!home.locked) { placeHome(stage, home); home.locked = true; }
 
-    if (idle > IDLE_DEMO) {
-      idle = 0;
-      act(stage.w * (home.px > 0.5 ? 0.2 : 0.8), stage.h * rand(0.3, 0.7));
-    }
-    stage.resetIdle = () => { idle = 0; };
+    if (demo.tick(dt)) act(stage.w * (home.px > 0.5 ? 0.22 : 0.78), stage.h * 0.5);
+    stage.resetIdle = () => demo.cancel();
 
     // Le clone suit le pointeur avec du retard — c'est le curseur qui devient l'ombre
     if (stage.pointer.inside) {
@@ -252,7 +261,8 @@ function behaviourE(stage, home) {
   const px = new Particles(420);
   const rings = [];
   const foes = [];
-  let idle = 0, bob = 0;
+  const demo = makeDemo();
+  let bob = 0;
   const shadowOff = { dx: 0, dy: 0 };
 
   const seed = () => {
@@ -278,13 +288,13 @@ function behaviourE(stage, home) {
 
   stage.update = (dt) => {
     const ctx = stage.ctx;
-    idle += dt; bob += dt;
+    bob += dt;
     placeHome(stage, home);
     shadowOff.dx = Math.cos(bob * 0.5) * stage.w * 0.14;
     shadowOff.dy = Math.sin(bob * 0.7) * stage.h * (stage.w < NARROW ? 0.10 : 0.16);
 
-    if (idle > IDLE_DEMO) { idle = 0; slash(); }
-    stage.resetIdle = () => { idle = 0; };
+    if (demo.tick(dt)) slash();
+    stage.resetIdle = () => demo.cancel();
 
     const maxR = Math.min(stage.w, stage.h) * 0.30;
 
@@ -363,7 +373,8 @@ function behaviourR(stage, home) {
   let zed = { x: 0, y: 0, alpha: 1 };
   let dashT = 0, dashFrom = null;
   let boom = 0;
-  let idle = 0, bob = 0;
+  const demo = makeDemo();
+  let bob = 0;
 
   const go = () => {
     if (phase !== 'idle') return;
@@ -375,7 +386,7 @@ function behaviourR(stage, home) {
 
   stage.update = (dt) => {
     const ctx = stage.ctx;
-    idle += dt; bob += dt;
+    bob += dt;
     placeHome(stage, home);
 
     if (!target.init) {
@@ -391,8 +402,8 @@ function behaviourR(stage, home) {
       target.init = true;
     }
 
-    if (idle > IDLE_DEMO + 1.6) { idle = 0; go(); }
-    stage.resetIdle = () => { idle = 0; };
+    if (demo.tick(dt)) go();
+    stage.resetIdle = () => demo.cancel();
 
     // La cible dérive, sauf pendant la marque où elle ralentit (elle sait)
     const tk = phase === 'marked' ? 0.28 : 1;

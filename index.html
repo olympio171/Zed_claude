@@ -38,13 +38,13 @@
   </defs>
 </svg>
 
-<!-- ══════════ Curseur-ombre ══════════ -->
+<!-- ══════════ Curseur-ombre ══════════
+     Le curseur natif reste visible : ceci n'est que l'ombre qui le suit. -->
 <div class="cursor" aria-hidden="true">
   <div class="cursor__shadow" data-cursor-shadow></div>
-  <div class="cursor__dot" data-cursor-dot></div>
   <svg class="cursor__mark" data-cursor-mark viewBox="0 0 100 100" aria-hidden="true">
-    <circle class="cursor__mark-ring" cx="50" cy="50" r="34"/>
-    <circle class="cursor__mark-fill" cx="50" cy="50" r="34"/>
+    <circle class="cursor__mark-track" cx="50" cy="50" r="34"/>
+    <circle class="cursor__mark-fuse" cx="50" cy="50" r="34"/>
     <path class="cursor__mark-glyph" d="M50 26 L62 50 L50 74 L38 50 Z"/>
   </svg>
 </div>

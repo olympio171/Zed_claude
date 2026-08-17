@@ -7,7 +7,7 @@
    ═══════════════════════════════════════════════ */
 
 import { prefs, announce, clamp } from './core.js';
-import { initCursor }    from './cursor.js';
+import { initCursor, initClone } from './cursor.js';
 import { initAudio }     from './audio.js';
 import { initOpening }   from './opening.js';
 import { initAbilities } from './abilities.js';
@@ -30,6 +30,7 @@ function whenGsap(timeout = 4000) {
 
 const audio  = initAudio();
 const cursor = initCursor({ onWhoosh: (i) => audio.whoosh(i) });
+initClone({ onWhoosh: (i) => audio.whoosh(i) });
 
 const deathveil = document.querySelector('[data-deathveil]');
 function flashDeath() {
@@ -90,26 +91,11 @@ whenGsap().then((ok) => {
 
   if (!animate) { document.documentElement.classList.remove('js-anim'); wireStaticFallbacks(); return; }
 
-  /* ── Lame de lumière au passage d'un acte ── */
-  const sweep = document.createElement('div');
-  sweep.className = 'cut-sweep';
-  sweep.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(sweep);
-
-  let lastSweep = 0;
-  function bladeSweep(dir = 1) {
-    const now = performance.now();
-    if (now - lastSweep < 700) return;     // pas deux coupes coup sur coup
-    lastSweep = now;
-    sweep.animate(
-      [{ transform: `translate3d(${dir > 0 ? -110 : 110}%,0,0)`, opacity: 1 },
-       { transform: `translate3d(${dir > 0 ? 110 : -110}%,0,0)`, opacity: 1 }],
-      { duration: 620, easing: 'cubic-bezier(.9,0,.1,1)' }
-    );
-    audio.whoosh(0.35);
-  }
-
-  /* ── Titres : révélés par une coupe diagonale ── */
+  /* ── Titres : révélés par une coupe diagonale ──
+     C'est ici que vit la « transition lame » : chaque titre est tranché en
+     diagonale à son entrée. Une lame plein écran balayait auparavant le
+     viewport à chaque frontière d'acte — perçue, à raison, comme une bande
+     violette qui apparaît sans raison. La coupe reste, attachée au contenu. */
   gsap.utils.toArray('.act__title, .ability__name, .plate__name').forEach((el) => {
     // Les bornes verticales débordent la boîte : un accent capital qui
     // dépasse du line-box ne doit pas être rogné par la coupe.
@@ -236,9 +222,7 @@ whenGsap().then((ok) => {
       onToggle(self) {
         if (!self.isActive) return;
         dots.forEach((d, k) => d.setAttribute('aria-current', String(k === i)));
-      },
-      onEnter:     () => bladeSweep(1),
-      onEnterBack: () => bladeSweep(-1)
+      }
     });
   });
 

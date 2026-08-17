@@ -93,58 +93,57 @@ svg.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 :focus:not(:focus-visible) { outline: none; }
 
 /* ───────── 4. Curseur-ombre ───────── */
-/* Le vrai curseur n'est masqué que sur pointeur fin, mouvement autorisé,
-   et jamais en navigation clavier (voir body.kbd). */
-@media (pointer: fine) {
-  body.shadow-cursor:not(.kbd),
-  body.shadow-cursor:not(.kbd) * { cursor: none; }
-}
-
+/* Le curseur natif n'est JAMAIS masqué : ce calque n'est que l'ombre
+   qui le poursuit. Masquer le pointeur système supprimait la main sur les
+   liens, la barre sur le texte, et donnait une sensation de latence. */
 .cursor {
   position: fixed; inset: 0;
   pointer-events: none; z-index: 9000;
   display: none;
+  opacity: 0;
+  transition: opacity .45s ease;
 }
 body.shadow-cursor .cursor { display: block; }
+body.shadow-cursor .cursor.is-live { opacity: 1; }
+/* En navigation clavier, l'ombre n'a plus de sens : le focus prend le relais */
+body.kbd .cursor { opacity: 0; }
 
-.cursor__dot,
 .cursor__shadow,
 .cursor__mark {
   position: absolute; top: 0; left: 0;
   will-change: transform;
 }
 
-/* Le point net : la position réelle, l'instant présent */
-.cursor__dot {
-  width: 6px; height: 6px; margin: -3px 0 0 -3px;
-  background: var(--bone);
-  transform-origin: 50% 50%;
-  rotate: 45deg;
-}
-
 /* L'ombre : le même geste, quelques millisecondes en retard */
 .cursor__shadow {
-  width: 34px; height: 34px; margin: -17px 0 0 -17px;
-  border: 1px solid rgba(139, 92, 246, .55);
-  background: radial-gradient(circle, rgba(139, 92, 246, .16), transparent 68%);
-  rotate: 45deg;
+  width: 30px; height: 30px; margin: -15px 0 0 -15px;
+  border: 1px solid rgba(139, 92, 246, .5);
+  background: radial-gradient(circle, rgba(139, 92, 246, .14), transparent 70%);
+  border-radius: 2px;
+  transition: width .3s var(--ease-blade), height .3s var(--ease-blade),
+              margin .3s var(--ease-blade), border-color .3s;
+}
+/* Au-dessus d'un élément actionnable, l'ombre s'ouvre */
+.cursor.is-hot .cursor__shadow {
+  width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  border-color: rgba(139, 92, 246, .8);
 }
 
 /* Marque de la mort, posée sur le curseur lui-même */
 .cursor__mark {
   width: 96px; height: 96px; margin: -48px 0 0 -48px;
-  opacity: 0; transform: scale(.6);
+  opacity: 0;
 }
-.cursor__mark-ring,
-.cursor__mark-fill {
+.cursor__mark-track,
+.cursor__mark-fuse {
   fill: none; stroke-width: 2;
   transform-origin: 50% 50%; rotate: -90deg;
 }
-.cursor__mark-ring { stroke: rgba(194, 30, 40, .25); }
-.cursor__mark-fill {
+.cursor__mark-track { stroke: rgba(194, 30, 40, .22); }
+.cursor__mark-fuse {
   stroke: var(--blood);
-  stroke-dasharray: 214;   /* 2πr, r = 34 */
-  stroke-dashoffset: 214;
+  stroke-dasharray: 213.6;   /* 2πr, r = 34 */
+  stroke-dashoffset: 0;      /* plein au départ, se vide en 3 s */
 }
 .cursor__mark-glyph { fill: var(--blood); opacity: 0; }
 
@@ -330,26 +329,14 @@ body.shadow-cursor .cursor { display: block; }
 .act__title:hover .echo::before,
 .opening__title:hover .echo::before { transform: translate(14px, 11px); }
 
-/* ───────── 10. Transition « coupe de lame » entre actes ───────── */
-/* Une lame de lumière traverse l'écran au passage d'un acte.
-   Volontairement PAS un clip-path sur les sections : clip-path crée un
-   bloc conteneur pour les descendants en position fixed, ce qui casserait
-   l'épinglage de la galerie. La coupe est donc un calque au-dessus. */
-.cut-sweep {
-  position: fixed; inset: 0;
-  z-index: 8600;
-  pointer-events: none;
-  opacity: 0;
-  will-change: transform;
-  background: linear-gradient(
-    104deg,
-    transparent 46.5%,
-    rgba(245, 243, 240, .30) 48.6%,
-    rgba(139, 92, 246, .85) 49.6%,
-    rgba(245, 243, 240, .30) 50.6%,
-    transparent 52.8%
-  );
-}
+/* ───────── 10. Transition « coupe de lame » ─────────
+   La coupe est portée par les titres eux-mêmes (clip-path diagonal animé
+   à l'entrée, voir js/main.js). Pas de calque plein écran : une lame qui
+   balayait tout le viewport à chaque frontière d'acte se lisait comme une
+   bande violette surgissant sans cause.
+   À noter : jamais de clip-path sur les sections — il créerait un bloc
+   conteneur pour les descendants en position fixed et casserait
+   l'épinglage de la galerie. */
 
 /* ───────── 11. Acte 0 — Ouverture ───────── */
 .opening__canvas {
@@ -485,7 +472,6 @@ body.shadow-cursor .cursor { display: block; }
   cursor: crosshair;
   touch-action: pan-y;   /* laisse le défilement tactile passer */
 }
-body.shadow-cursor:not(.kbd) .ability__stage { cursor: none; }
 
 .ability__inner {
   position: relative; z-index: 1;
@@ -803,11 +789,9 @@ body.shadow-cursor:not(.kbd) .ability__stage { cursor: none; }
     transition-duration: .001ms !important;
   }
 
-  /* Le curseur-ombre, le parallax, le grain et les coupes disparaissent */
+  /* Le curseur-ombre, le parallax et le grain disparaissent */
   .cursor, .veil::after { display: none !important; }
-  body.shadow-cursor, body.shadow-cursor * { cursor: auto !important; }
   .par { transform: none !important; }
-  .cut-sweep { display: none !important; }
   .js-anim .ink-reveal { --ink-stop: 100%; }
   .ink-blot { transform: scale(1); opacity: .4; }
   .echo::before { transform: translate(6px, 5px) !important; }
