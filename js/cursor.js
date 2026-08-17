@@ -15,8 +15,15 @@
 
 import { prefs, clamp, announce } from './core.js';
 
-const STIFF = 120;          // raideur du ressort
-const DAMP  = 15;           // amortissement — sous 2·√STIFF, l'ombre dépasse un peu
+/* Retard de l'ombre — demi-vie : temps pour combler la moitié de l'écart.
+   Formulation exponentielle et non ressort intégré à la main :
+     · inconditionnellement stable, quel que soit le pas de temps ;
+     · rigoureusement identique à 30, 60 ou 144 Hz.
+   Un ressort explicite (raideur 120 / amortissement 15) traînait de
+   v × 0,125 s — soit 100 px à 800 px/s, plus de trois fois la taille de
+   l'ombre. Elle se détachait du pointeur au lieu de le suivre. */
+const HALF_LIFE = 0.022;    // → retard effectif ≈ 32 ms (25 px à 800 px/s)
+const SNAP = 0.4;           // px : sous ce seuil, on colle (pas de reptation)
 const IDLE_TO_MARK = 3;     // s d'immobilité avant que la marque se pose
 const FUSE = 3;             // s de compte à rebours, comme le R
 const REARM = 45;           // s avant de pouvoir remourir
@@ -41,7 +48,7 @@ export function initCursor({ onWhoosh } = {}) {
 
   /* ── État ── */
   const ptr = { x: innerWidth / 2, y: innerHeight / 2 };
-  const sh  = { x: ptr.x, y: ptr.y, vx: 0, vy: 0 };
+  const sh  = { x: ptr.x, y: ptr.y };
   let live = false;          // vrai dès le premier mouvement réel
   let idle = 0;              // secondes sans la moindre entrée
   let armed = false;         // acte V, ou déjà découvert
@@ -88,16 +95,21 @@ export function initCursor({ onWhoosh } = {}) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
 
-    /* Ressort amorti : l'ombre poursuit, dépasse, se rattrape */
-    sh.vx += ((ptr.x - sh.x) * STIFF - sh.vx * DAMP) * dt;
-    sh.vy += ((ptr.y - sh.y) * STIFF - sh.vy * DAMP) * dt;
-    sh.x += sh.vx * dt;
-    sh.y += sh.vy * dt;
+    /* L'ombre comble une fraction fixe de l'écart par unité de temps.
+       Math.pow(2, -dt/HALF_LIFE) rend le rattrapage indépendant du
+       nombre d'images par seconde : même retard partout. */
+    const a = 1 - Math.pow(2, -dt / HALF_LIFE);
+    const fromX = sh.x, fromY = sh.y;
+    sh.x += (ptr.x - sh.x) * a;
+    sh.y += (ptr.y - sh.y) * a;
+    if (Math.abs(ptr.x - sh.x) < SNAP) sh.x = ptr.x;
+    if (Math.abs(ptr.y - sh.y) < SNAP) sh.y = ptr.y;
 
-    // La vitesse étire l'ombre dans son axe, sans jamais l'aplatir
-    const sp = Math.hypot(sh.vx, sh.vy);
+    // Vitesse mesurée sur l'image écoulée — rien à intégrer, rien à diverger
+    const vx = (sh.x - fromX) / dt, vy = (sh.y - fromY) / dt;
+    const sp = Math.hypot(vx, vy);
     const k = clamp(sp / 3200, 0, 0.42);
-    const ang = sp > 12 ? Math.atan2(sh.vy, sh.vx) : 0;
+    const ang = sp > 12 ? Math.atan2(vy, vx) : 0;
     shadow.style.transform =
       `translate3d(${sh.x.toFixed(1)}px, ${sh.y.toFixed(1)}px, 0) ` +
       `rotate(${ang}rad) scale(${(1 + k).toFixed(3)}, ${(1 - k * 0.7).toFixed(3)})`;
